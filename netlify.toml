@@ -1,0 +1,49 @@
+# ============================================================================
+# Nexus ERP — Netlify deployment config (Postgres-backed, production-ready)
+# ============================================================================
+# Required env vars (set in Netlify dashboard → Site settings → Environment):
+#   DATABASE_URL          — postgres connection string (Supabase/Neon/Railway)
+#   NEXTAUTH_SECRET       — random 32+ char string (run: openssl rand -base64 32)
+#   NODE_VERSION          — 20 (set below)
+#
+# Optional (enable live integrations):
+#   PAYMOB_API_KEY, PAYMOB_INTEGRATION_ID, PAYMOB_IFRAME_ID
+#   META_WHATSAPP_TOKEN, META_WHATSAPP_PHONE_NUMBER_ID
+#   ETA_CLIENT_ID_B2B, ETA_CLIENT_SECRET_B2B, ETA_CLIENT_ID_B2C, ETA_CLIENT_SECRET_B2C
+#   CBE_LIVE_RATES, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+# ============================================================================
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+  NEXT_USE_NETLIFY_EDGE = "true"
+  PRISMA_SCHEMA_PATH = "prisma/schema.postgres.prisma"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["prisma/**", "db/**"]
+  timeout = 26
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/next"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Path = ["!/api/*"]}
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
